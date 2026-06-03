@@ -1,1 +1,339 @@
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+-- ========================
+--       WINDOW
+-- ========================
+local Window = Fluent:CreateWindow({
+	Title = "Meu Hub",
+	SubTitle = "by você",
+	TabWidth = 160,
+	Size = UDim2.fromOffset(580, 460),
+	Acrylic = true,
+	Theme = "Dark",
+	MinimizeKey = Enum.KeyCode.RightControl
+})
+
+local Tabs = {
+	Player  = Window:AddTab({ Title = "Player",  Icon = "person-standing" }),
+	Aimbot  = Window:AddTab({ Title = "Aimbot",  Icon = "crosshair" }),
+	ESP     = Window:AddTab({ Title = "ESP",     Icon = "eye" }),
+	Settings = Window:AddTab({ Title = "Settings", Icon = "settings" }),
+}
+
+-- ========================
+--       SETTINGS
+-- ========================
+local S = {
+	AimbotEnabled = false,
+	TeamCheck     = true,
+	WalkCheck     = true,
+	FOV           = 150,
+	Smoothing     = 8,
+	Bone          = "Head",
+
+	ESPEnabled    = false,
+	ESPTeamCheck  = true,
+	ESPMaxDist    = 1000,
+
+	FOVCircle     = false,
+}
+
+-- ========================
+--      PLAYER TAB
+-- ========================
+Tabs.Player:AddSlider("WalkSpeed", {
+	Title = "WalkSpeed",
+	Description = "Velocidade de caminhada",
+	Default = 16, Min = 16, Max = 100, Rounding = 0,
+	Callback = function(v)
+		local c = LocalPlayer.Character
+		if c and c:FindFirstChild("Humanoid") then
+			c.Humanoid.WalkSpeed = v
+		end
+	end
+})
+
+Tabs.Player:AddSlider("JumpPower", {
+	Title = "JumpPower",
+	Description = "Força do pulo",
+	Default = 50, Min = 50, Max = 200, Rounding = 0,
+	Callback = function(v)
+		local c = LocalPlayer.Character
+		if c and c:FindFirstChild("Humanoid") then
+			c.Humanoid.JumpPower = v
+		end
+	end
+})
+
+-- ========================
+--      AIMBOT TAB
+-- ========================
+Tabs.Aimbot:AddToggle("AimbotEnabled", {
+	Title = "Aimbot",
+	Description = "Ativa o aimbot",
+	Default = false,
+	Callback = function(v) S.AimbotEnabled = v end
+})
+
+Tabs.Aimbot:AddToggle("AimbotTeamCheck", {
+	Title = "Team Check",
+	Description = "Ignora aliados",
+	Default = true,
+	Callback = function(v) S.TeamCheck = v end
+})
+
+Tabs.Aimbot:AddToggle("AimbotWalkCheck", {
+	Title = "Walk Check",
+	Description = "Só mira em quem está se movendo",
+	Default = true,
+	Callback = function(v) S.WalkCheck = v end
+})
+
+Tabs.Aimbot:AddSlider("AimbotFOV", {
+	Title = "FOV",
+	Description = "Raio de detecção em pixels",
+	Default = 150, Min = 10, Max = 600, Rounding = 0,
+	Callback = function(v)
+		S.FOV = v
+		Circle.Radius = v
+	end
+})
+
+Tabs.Aimbot:AddSlider("AimbotSmoothing", {
+	Title = "Smoothing",
+	Description = "Quanto maior, mais suave e lento",
+	Default = 8, Min = 1, Max = 30, Rounding = 0,
+	Callback = function(v) S.Smoothing = v end
+})
+
+Tabs.Aimbot:AddDropdown("AimbotBone", {
+	Title = "Osso Alvo",
+	Description = "Parte do corpo para mirar",
+	Values = {"Head", "UpperTorso", "Torso", "HumanoidRootPart"},
+	Default = "Head",
+	Callback = function(v) S.Bone = v end
+})
+
+-- ========================
+--    FOV CIRCLE (criado antes de ser referenciado acima)
+-- ========================
+local Circle = Drawing.new("Circle")
+Circle.Visible   = false
+Circle.Thickness = 2
+Circle.Filled    = false
+Circle.Color     = Color3.fromRGB(255, 255, 255)
+Circle.Radius    = S.FOV
+
+Tabs.Aimbot:AddToggle("FOVCircle", {
+	Title = "FOV Circle",
+	Description = "Mostra o círculo de FOV na tela",
+	Default = false,
+	Callback = function(v)
+		S.FOVCircle = v
+		Circle.Visible = v
+	end
+})
+
+-- ========================
+--       ESP TAB
+-- ========================
+local Highlights = {}
+
+local function IsSameTeam(p)
+	return LocalPlayer.Team ~= nil and p.Team == LocalPlayer.Team
+end
+
+local function ShouldShowESP(player)
+	if not S.ESPEnabled then return false end
+	if S.ESPTeamCheck and IsSameTeam(player) then return false end
+	local lc = LocalPlayer.Character
+	local lr = lc and lc:FindFirstChild("HumanoidRootPart")
+	local pc = player.Character
+	local pr = pc and pc:FindFirstChild("HumanoidRootPart")
+	if not lr or not pr then return false end
+	if (pr.Position - lr.Position).Magnitude > S.ESPMaxDist then return false end
+	return true
+end
+
+local function ApplyHighlight(player)
+	if Highlights[player] then
+		Highlights[player]:Destroy()
+		Highlights[player] = nil
+	end
+	if not ShouldShowESP(player) then return end
+	local c = player.Character
+	if not c then return end
+
+	local h = Instance.new("Highlight")
+	h.DepthMode           = Enum.HighlightDepthMode.AlwaysOnTop
+	h.FillTransparency    = 0.5
+	h.OutlineTransparency = 0
+	h.FillColor           = IsSameTeam(player)
+		and Color3.fromRGB(50, 150, 255)
+		or  Color3.fromRGB(255, 50, 50)
+	h.OutlineColor        = Color3.fromRGB(255, 255, 255)
+	h.Parent              = c
+	Highlights[player]    = h
+end
+
+local function RemoveHighlight(player)
+	if Highlights[player] then
+		Highlights[player]:Destroy()
+		Highlights[player] = nil
+	end
+end
+
+local function UpdateAllESP()
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer then
+			ApplyHighlight(p)
+		end
+	end
+end
+
+local function SetupPlayer(player)
+	player.CharacterAdded:Connect(function()
+		task.wait(0.5)
+		ApplyHighlight(player)
+	end)
+	if player.Character then
+		ApplyHighlight(player)
+	end
+end
+
+for _, p in ipairs(Players:GetPlayers()) do
+	if p ~= LocalPlayer then SetupPlayer(p) end
+end
+Players.PlayerAdded:Connect(function(p) SetupPlayer(p) end)
+Players.PlayerRemoving:Connect(function(p) RemoveHighlight(p) end)
+
+Tabs.ESP:AddToggle("ESPEnabled", {
+	Title = "ESP",
+	Description = "Mostra jogadores através das paredes",
+	Default = false,
+	Callback = function(v)
+		S.ESPEnabled = v
+		UpdateAllESP()
+	end
+})
+
+Tabs.ESP:AddToggle("ESPTeamCheck", {
+	Title = "Team Check",
+	Description = "Esconde aliados do ESP",
+	Default = true,
+	Callback = function(v)
+		S.ESPTeamCheck = v
+		UpdateAllESP()
+	end
+})
+
+Tabs.ESP:AddSlider("ESPMaxDist", {
+	Title = "Distância Máxima",
+	Description = "Distância máxima para mostrar ESP",
+	Default = 1000, Min = 100, Max = 3000, Rounding = 0,
+	Callback = function(v) S.ESPMaxDist = v end
+})
+
+-- ========================
+--    SETTINGS TAB
+-- ========================
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+InterfaceManager:SetFolder("MeuHub")
+SaveManager:SetFolder("MeuHub/configs")
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
+
+-- ========================
+--    AIMBOT FUNCTIONS
+-- ========================
+local function GetTarget()
+	local MousePos = UserInputService:GetMouseLocation()
+	local Best, BestDist = nil, S.FOV
+
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p == LocalPlayer then continue end
+		if S.TeamCheck and IsSameTeam(p) then continue end
+
+		local char = p.Character
+		if not char then continue end
+		local hum  = char:FindFirstChild("Humanoid")
+		local bone = char:FindFirstChild(S.Bone)
+		if not hum or not bone then continue end
+		if hum.Health <= 0 then continue end
+		if S.WalkCheck and hum.MoveDirection.Magnitude < 0.1 then continue end
+
+		local sp = Camera:WorldToViewportPoint(bone.Position)
+		if sp.Z <= 0 then continue end -- FIX: ignora atrás da câmera
+
+		local dist2D = (Vector2.new(sp.X, sp.Y) - MousePos).Magnitude
+		if dist2D < BestDist then
+			BestDist = dist2D
+			Best = bone
+		end
+	end
+
+	return Best
+end
+
+-- ========================
+--      RENDER LOOP
+-- ========================
+RunService.RenderStepped:Connect(function(dt)
+	-- FOV Circle
+	if Circle.Visible then
+		Circle.Position = UserInputService:GetMouseLocation()
+	end
+
+	-- Aimbot
+	if S.AimbotEnabled then
+		local bone = GetTarget()
+		if bone then
+			local sp = Camera:WorldToViewportPoint(bone.Position)
+			local ray = Camera:ViewportPointToRay(sp.X, sp.Y)
+			local targetPos = ray.Origin + ray.Direction * 500
+
+			local currentCF = Camera.CFrame
+			local goalCF = CFrame.new(currentCF.Position, targetPos)
+			local alpha = math.clamp(dt * (30 / S.Smoothing), 0, 1)
+			Camera.CFrame = currentCF:Lerp(goalCF, alpha)
+		end
+	end
+
+	-- Atualizar ESP por distância
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p == LocalPlayer then continue end
+		local show = ShouldShowESP(p)
+		local has  = Highlights[p] ~= nil
+		if show and not has then
+			ApplyHighlight(p)
+		elseif not show and has then
+			RemoveHighlight(p)
+		end
+	end
+end)
+
+-- ========================
+--        INIT
+-- ========================
+SaveManager:LoadAutoLoad()
+Fluent:SelectTab(Tabs.Player)
+
+Window:Dialog({
+	Title = "Meu Hub",
+	Body = "Hub carregado com sucesso!",
+	Buttons = {{
+		Title = "Ok",
+		Callback = function() end
+	}}
+})
