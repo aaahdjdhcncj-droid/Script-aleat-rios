@@ -1,0 +1,230 @@
+--// NIGHT + RED FOG + BLACK SCREEN + KICK
+--// LocalScript
+--// StarterPlayer > StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+--==================================================
+-- CONFIGURAÇÕES
+--==================================================
+
+local TEMPO_ATE_NOITE = 30
+local TEMPO_DA_NEBLINA = 10
+
+--==================================================
+-- TEMPO PASSANDO ATÉ 00:00
+--==================================================
+
+local horaInicial = Lighting.ClockTime
+
+task.spawn(function()
+
+	local inicio = os.clock()
+
+	while os.clock() - inicio < TEMPO_ATE_NOITE do
+
+		local progresso =
+			(os.clock() - inicio) / TEMPO_ATE_NOITE
+
+		local hora =
+			horaInicial + (24 - horaInicial) * progresso
+
+		if hora >= 24 then
+			hora = 0
+		end
+
+		Lighting.ClockTime = hora
+
+		task.wait()
+	end
+
+	Lighting.ClockTime = 0
+end)
+
+--==================================================
+-- ESPERA 30 SEGUNDOS
+--==================================================
+
+task.wait(TEMPO_ATE_NOITE)
+
+--==================================================
+-- NEBLINA
+--==================================================
+
+Lighting.FogStart = 100000
+Lighting.FogEnd = 100000
+Lighting.FogColor = Color3.fromRGB(70, 0, 0)
+
+--==================================================
+-- EFEITO ESCURO / VERMELHO
+--==================================================
+
+local colorEffect = Instance.new("ColorCorrectionEffect")
+
+colorEffect.Name = "RedBlackEffect"
+colorEffect.Brightness = 0
+colorEffect.Contrast = 0
+colorEffect.Saturation = 0
+colorEffect.TintColor = Color3.fromRGB(255, 255, 255)
+
+colorEffect.Parent = Lighting
+
+--==================================================
+-- FADE IN DA NEBLINA
+--==================================================
+
+local fogTween = TweenService:Create(
+	Lighting,
+	TweenInfo.new(
+		TEMPO_DA_NEBLINA,
+		Enum.EasingStyle.Sine,
+		Enum.EasingDirection.InOut
+	),
+	{
+		FogStart = 0,
+		FogEnd = 45
+	}
+)
+
+local colorTween = TweenService:Create(
+	colorEffect,
+	TweenInfo.new(
+		TEMPO_DA_NEBLINA,
+		Enum.EasingStyle.Sine,
+		Enum.EasingDirection.InOut
+	),
+	{
+		Brightness = -0.35,
+		Contrast = 0.25,
+		Saturation = -0.25,
+		TintColor = Color3.fromRGB(180, 70, 70)
+	}
+)
+
+fogTween:Play()
+colorTween:Play()
+
+--==================================================
+-- ESPERA A NEBLINA TERMINAR
+--==================================================
+
+task.wait(TEMPO_DA_NEBLINA)
+
+--==================================================
+-- GUI
+--==================================================
+
+local gui = Instance.new("ScreenGui")
+
+gui.Name = "HackedScreen"
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.DisplayOrder = 999999
+
+gui.Parent = playerGui
+
+--==================================================
+-- TELA PRETA
+--==================================================
+
+local blackScreen = Instance.new("Frame")
+
+blackScreen.Name = "BlackScreen"
+blackScreen.Size = UDim2.fromScale(1, 1)
+blackScreen.Position = UDim2.fromScale(0, 0)
+
+blackScreen.BackgroundColor3 =
+	Color3.fromRGB(0, 0, 0)
+
+blackScreen.BorderSizePixel = 0
+
+blackScreen.Parent = gui
+
+--==================================================
+-- TEXTO PRINCIPAL
+--==================================================
+
+local mainText = Instance.new("TextLabel")
+
+mainText.Name = "MainText"
+
+mainText.AnchorPoint =
+	Vector2.new(0.5, 0.5)
+
+mainText.Position =
+	UDim2.fromScale(0.5, 0.48)
+
+mainText.Size =
+	UDim2.fromScale(0.88, 0.38)
+
+mainText.BackgroundTransparency = 1
+
+mainText.Text =
+	"My friend, never use scripts\nagain!"
+
+mainText.TextColor3 =
+	Color3.fromRGB(245, 245, 245)
+
+mainText.TextScaled = true
+mainText.Font = Enum.Font.SourceSans
+
+mainText.TextXAlignment =
+	Enum.TextXAlignment.Center
+
+mainText.TextYAlignment =
+	Enum.TextYAlignment.Center
+
+mainText.Parent = blackScreen
+
+--==================================================
+-- TEXTO VERMELHO
+--==================================================
+
+local hackedText = Instance.new("TextLabel")
+
+hackedText.Name = "HackedText"
+
+hackedText.AnchorPoint =
+	Vector2.new(0.5, 0.5)
+
+hackedText.Position =
+	UDim2.fromScale(0.66, 0.94)
+
+hackedText.Size =
+	UDim2.fromScale(0.38, 0.08)
+
+hackedText.BackgroundTransparency = 1
+
+hackedText.Text =
+	"Hacked @Freest1ySadz"
+
+hackedText.TextColor3 =
+	Color3.fromRGB(125, 0, 0)
+
+hackedText.TextScaled = true
+hackedText.Font = Enum.Font.SourceSans
+
+hackedText.TextXAlignment =
+	Enum.TextXAlignment.Center
+
+hackedText.TextYAlignment =
+	Enum.TextYAlignment.Center
+
+hackedText.Parent = blackScreen
+
+--==================================================
+-- ESPERA 5 SEGUNDOS
+--==================================================
+
+task.wait(5)
+
+--==================================================
+-- KICK
+--==================================================
+
+player:Kick("What Roblox didn't do. I'll do Bye.")
