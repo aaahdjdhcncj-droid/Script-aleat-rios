@@ -913,15 +913,35 @@ local Section = ETab:Section({
     Title = "Settings"
 })
 
-
-
-local Theme = ETab:Dropdown({
-    Title = "Theme",
-    Flag = "selected_theme", 
-    Options = { "Light", "Dark", "Indigo" },
-    Default = "Indigo",
+local Dropdown = ETab:Dropdown({
+    Title = "Select Value",
+    Values = {
+        "Dark",
+        "Light",
+        "Indigo"
+    },
     Callback = function(selected)
-     Window:SetTheme(selected)
+        Window:SetTheme(selected)
     end
 })
 
+local Button = ETab:Button({
+    Title = "Anti AFK",
+    Callback = function()
+        -- ANTI AFK made by Muscle_legends2021 [Gio]
+
+local VirtualUser = game:GetService('VirtualUser')
+
+game:GetService('Players').LocalPlayer.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
+end)
+
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "AntiAFK loaded!",
+    Text = "Made by Gio",
+    Button1 = "Thanks",
+    Duration = 5
+})
+    end
+})
