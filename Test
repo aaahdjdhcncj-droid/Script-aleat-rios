@@ -296,39 +296,6 @@ local Section = VTab:Section({
     Title = "ESP"
 })
 
-    local highlightConnection
-local highlights = {}
-
-local function adicionarHighlight(model)
-    if not model:IsA("Model") then return end
-
-    local humanoid = model:FindFirstChildWhichIsA("Humanoid", true)
-    if not humanoid then return end
-
-    if model:FindFirstChild("HumanoidHighlight") then return end
-
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "HumanoidHighlight"
-    highlight.FillColor = Color3.fromRGB(255, 0, 0)
-    highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
-    highlight.FillTransparency = 0.5
-    highlight.OutlineTransparency = 0
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Parent = model
-
-    table.insert(highlights, highlight)
-end
-
-local function limparHighlights()
-    for _, highlight in ipairs(highlights) do
-        if highlight and highlight.Parent then
-            highlight:Destroy()
-        end
-    end
-
-    table.clear(highlights)
-end
-
 local KillerHighlightConnection
 local KillerHighlights = {}
 
@@ -337,8 +304,9 @@ local function adicionarKillerHighlight(obj)
         return
     end
 
-    -- O próprio Model precisa ter um Humanoid dentro dele
-    local humanoid = obj:FindFirstChildWhichIsA("Humanoid", true)
+    -- O Humanoid precisa estar diretamente dentro deste Model
+    local humanoid = obj:FindFirstChildOfClass("Humanoid")
+
     if not humanoid then
         return
     end
@@ -385,20 +353,23 @@ local Toggle = VTab:Toggle({
             return
         end
 
-        local floor = workspace:FindFirstChild("Floor")
-        if not floor then
+        local Floor = workspace:FindFirstChild("Floor")
+        if not Floor then
             return
         end
 
         -- Procura todos os Models dentro de Floor
-        for _, obj in ipairs(floor:GetDescendants()) do
+        for _, obj in ipairs(Floor:GetDescendants()) do
             adicionarKillerHighlight(obj)
         end
 
         -- Detecta novos Models automaticamente
-        KillerHighlightConnection = floor.DescendantAdded:Connect(function(obj)
-            task.wait()
-            adicionarKillerHighlight(obj)
+        KillerHighlightConnection = Floor.DescendantAdded:Connect(function(obj)
+            if obj:IsA("Model") then
+                task.defer(function()
+                    adicionarKillerHighlight(obj)
+                end)
+            end
         end)
     end
 })
