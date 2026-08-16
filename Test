@@ -25,12 +25,13 @@ local Window = WindUI:CreateWindow({
         Callback = function() -- callback on click. optional. it can be removed
             print("clicked to the 'user icon'")
         end,
-    },
+},
+    })
 
-        local Tag = Window:Tag({
-    Title = "New"
+     local Tag = Window:Tag({
+Title = "New"
 })
-        
+
 -- your tag
 local FPSTag = Window:Tag({
     Title = "FPS: 0",
@@ -492,7 +493,7 @@ local Toggle = RTab:Toggle({
         local nomes = {
             "megavip",
             "overlord",
-            "vip", "
+            "vip",
             "group",
             "barrierelevator",
             "forcefield"
