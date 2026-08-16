@@ -556,7 +556,7 @@ local function monitorarCharacter(character)
         local newCharacter = player.CharacterAdded:Wait()
         local root = newCharacter:WaitForChild("HumanoidRootPart")
 
-        task.wait(0.2)
+        task.wait(0.8)
         root.CFrame = CFrame.new(253, 8, -373)
     end)
 end
