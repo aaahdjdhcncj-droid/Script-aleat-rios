@@ -483,21 +483,18 @@ local Toggle = VTab:Toggle({
     Title = "Misc"
 })
 
-    local HumanoidKillConnection
-local HumanoidKillEnabled = false
+    local KillKillerConnection
+local KillKillerEnabled = false
 
-local function matarHumanoid(obj)
-    if not HumanoidKillEnabled then
+local function matarModel(model)
+    if not model:IsA("Model") then
         return
     end
 
-    if not obj:IsA("Model") then
-        return
-    end
+    -- Só aceita Humanoid diretamente dentro deste Model
+    local humanoid = model:FindFirstChildOfClass("Humanoid")
 
-    local humanoid = obj:FindFirstChildWhichIsA("Humanoid", true)
-
-    if humanoid then
+    if humanoid and humanoid.Health > 0 then
         humanoid.Health = 0
     end
 end
@@ -507,11 +504,11 @@ local Toggle = RTab:Toggle({
     Default = false,
 
     Callback = function(state)
-        HumanoidKillEnabled = state
+        KillKillerEnabled = state
 
-        if HumanoidKillConnection then
-            HumanoidKillConnection:Disconnect()
-            HumanoidKillConnection = nil
+        if KillKillerConnection then
+            KillKillerConnection:Disconnect()
+            KillKillerConnection = nil
         end
 
         if not state then
@@ -523,15 +520,20 @@ local Toggle = RTab:Toggle({
             return
         end
 
-        -- Mata os que já existem
-        for _, obj in ipairs(Floor:GetChildren()) do
-            matarHumanoid(obj)
+        -- Procura somente Models que tenham Humanoid diretamente dentro deles
+        for _, obj in ipairs(Floor:GetDescendants()) do
+            if obj:IsA("Model") then
+                matarModel(obj)
+            end
         end
 
-        -- Mata automaticamente os que aparecerem depois
-        HumanoidKillConnection = Floor.ChildAdded:Connect(function(obj)
-            task.wait()
-            matarHumanoid(obj)
+        -- Detecta novos Models automaticamente
+        KillKillerConnection = Floor.DescendantAdded:Connect(function(obj)
+            if KillKillerEnabled and obj:IsA("Model") then
+                task.defer(function()
+                    matarModel(obj)
+                end)
+            end
         end)
     end
 })
