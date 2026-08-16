@@ -802,8 +802,9 @@ local Toggle = ATab:Toggle({
     end
 })
 
-        local TeleportPart
-local TeleportEnabled = false
+        local TeleportEnabled = false
+local TeleportLoop
+local TeleportPart
 
 local Toggle = ATab:Toggle({
     Title = "Auto Survive",
@@ -812,45 +813,64 @@ local Toggle = ATab:Toggle({
     Callback = function(state)
         TeleportEnabled = state
 
-        local character = player.Character
-        local root = character and character:FindFirstChild("HumanoidRootPart")
+        if TeleportLoop then
+            task.cancel(TeleportLoop)
+            TeleportLoop = nil
+        end
 
-        if state then
-            TeleportPart = Instance.new("Part")
-            TeleportPart.Name = "TeleportPoint"
-            TeleportPart.Size = Vector3.new(50, 1, 50)
-            TeleportPart.Position = Vector3.new(101, 176, 1238)
-            TeleportPart.Anchored = true
-            TeleportPart.CanCollide = true
-            TeleportPart.Transparency = 0.5
-            TeleportPart.Parent = workspace
+        if TeleportPart then
+            TeleportPart:Destroy()
+            TeleportPart = nil
+        end
+
+        if not state then
+            -- Ao desligar, vai para um SpawnLocation aleatório
+            local character = player.Character
+            local root = character and character:FindFirstChild("HumanoidRootPart")
 
             if root then
-                root.CFrame = CFrame.new(101, 179, 1238)
-            end
+                local spawns = {}
 
-        else
-            local spawns = {}
+                for _, obj in ipairs(workspace:GetDescendants()) do
+                    if obj:IsA("SpawnLocation") then
+                        table.insert(spawns, obj)
+                    end
+                end
 
-            for _, obj in ipairs(workspace:GetDescendants()) do
-                if obj:IsA("SpawnLocation") then
-                    table.insert(spawns, obj)
+                if #spawns > 0 then
+                    local spawn = spawns[math.random(1, #spawns)]
+                    root.CFrame = spawn.CFrame + Vector3.new(0, 3, 0)
                 end
             end
 
-            if root and #spawns > 0 then
-                local spawn = spawns[math.random(1, #spawns)]
-                root.CFrame = spawn.CFrame + Vector3.new(0, 3, 0)
-            end
-
-            if TeleportPart then
-                TeleportPart:Destroy()
-                TeleportPart = nil
-            end
+            return
         end
+
+        -- Cria a plataforma
+        TeleportPart = Instance.new("Part")
+        TeleportPart.Name = "TeleportPoint"
+        TeleportPart.Size = Vector3.new(50, 1, 50)
+        TeleportPart.Position = Vector3.new(101, 176, 1238)
+        TeleportPart.Anchored = true
+        TeleportPart.CanCollide = true
+        TeleportPart.Transparency = 0.5
+        TeleportPart.Parent = workspace
+
+        -- Teleporta constantemente
+        TeleportLoop = task.spawn(function()
+            while TeleportEnabled do
+                local character = player.Character
+                local root = character and character:FindFirstChild("HumanoidRootPart")
+
+                if root then
+                    root.CFrame = CFrame.new(101, 179, 1238)
+                end
+
+                task.wait(0.1)
+            end
+        end)
     end
 })
-
         local AutoLeverEnabled = false
 local AutoLeverLoop
 
