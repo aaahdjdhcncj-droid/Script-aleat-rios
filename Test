@@ -149,37 +149,45 @@ local Slider = MTab:Slider({
 local Players = game:GetService("Players")
 
 local player = Players.LocalPlayer
-local noclipConnection
+local NoclipEnabled = false
+local NoclipConnection
 
 local Toggle = MTab:Toggle({
     Title = "Noclip",
     Default = false,
 
     Callback = function(state)
-        if noclipConnection then
-            noclipConnection:Disconnect()
-            noclipConnection = nil
+        NoclipEnabled = state
+
+        if NoclipConnection then
+            NoclipConnection:Disconnect()
+            NoclipConnection = nil
         end
 
-        if state then
-            noclipConnection = RunService.Stepped:Connect(function()
-                local character = player.Character
-                if not character then return end
+        if not state then
+            local character = player.Character
 
-                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-
+            if character then
                 for _, part in ipairs(character:GetDescendants()) do
                     if part:IsA("BasePart") then
-                        -- Não deixa o HumanoidRootPart atravessar o chão
-                        if part == humanoidRootPart then
-                            part.CanCollide = true
-                        else
-                            part.CanCollide = false
-                        end
+                        part.CanCollide = true
                     end
                 end
-            end)
+            end
+
+            return
         end
+
+        NoclipConnection = RunService.Stepped:Connect(function()
+            local character = player.Character
+            if not character then return end
+
+            for _, part in ipairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end)
     end
 })
 
