@@ -812,7 +812,7 @@ local Toggle = ATab:Toggle({
         local AutoLeverEnabled = false
 local AutoLeverLoop
 
-local Toggle = Tab:Toggle({
+local Toggle = ATab:Toggle({
     Title = "Auto Lever",
     Desc = "BETA",
     Default = false,
@@ -878,7 +878,7 @@ local Theme = ETab:Dropdown({
     Options = { "Light", "Dark", "Indigo" },
     Default = "Indigo",
     Callback = function(selected)
-     Window:SetTheme(Theme: = (selected))
+     Window:SetTheme(selected)
     end
 })
 
