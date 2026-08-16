@@ -1,0 +1,883 @@
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "👁️ Terrible Elevator", -- window title
+    Icon = "https://pin.it/1lYwjlaar", -- lucide icon or "rbxassetid://" or URL. optional
+    Author = "Yoricks", -- window subtitle. optional
+    Folder = "MyHub", -- folder to save keys and images
+    
+    Size = UDim2.fromOffset(580, 460), -- window size
+    MinSize = Vector2.new(560, 350), -- minimal window size
+    MaxSize = Vector2.new(850, 560), -- maximum window size
+    Transparent = true, -- window transparency
+    Theme = "Indigo", -- library theme
+    Resizable = true, -- the ability to rezize window
+    SideBarWidth = 200, -- sidebar (tabs) width
+    HideSearchBar = true, -- hide search bar
+    ScrollBarEnabled = false, -- scrollbars that are located to the right of the scroll frame
+ 
+    BackgroundImageTransparency = 0.42, -- background image transparency
+    Background = "https://pin.it/4aUoh7dX9", -- rbxassetid
+    
+    User = { -- user information located at the bottom left
+        Enabled = true, -- can be toggled with Window.User:Enable() or Window.User:Disable()
+        Anonymous = true, -- can be toggled with Window.User:SetAnonymous(true) --(true or false)
+        Callback = function() -- callback on click. optional. it can be removed
+            print("clicked to the 'user icon'")
+        end,
+    },
+
+        local Tag = Window:Tag({
+    Title = "New"
+})
+        
+-- your tag
+local FPSTag = Window:Tag({
+    Title = "FPS: 0",
+    Color = Color3.fromRGB(100, 150, 255),
+})
+ 
+local RunService = game:GetService("RunService")
+local lastUpdate = tick()
+local frameCount = 0
+ 
+RunService.RenderStepped:Connect(function()
+    frameCount = frameCount + 1
+    local now = tick()
+    
+    if now - lastUpdate >= 1 then
+        local fps = math.floor(frameCount / (now - lastUpdate))
+        FPSTag:SetTitle("FPS: " .. fps)
+        
+        if fps >= 50 then
+            FPSTag:SetColor(Color3.fromRGB(0, 255, 0)) -- Green
+        elseif fps >= 30 then
+            FPSTag:SetColor(Color3.fromRGB(255, 200, 0)) -- Yellow
+        else
+            FPSTag:SetColor(Color3.fromRGB(255, 0, 0)) -- Red
+        end
+        
+        
+        frameCount = 0
+        lastUpdate = now
+    end
+end)
+
+local PingTag = Window:Tag({
+    Title = "Ping: 0ms",
+    Color = Color3.fromRGB(100, 200, 255),
+})
+ 
+task.spawn(function()
+    while true do
+        local success, ping = pcall(function()
+            local Stats = game:GetService("Stats")
+            local pingValue = Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+            return math.floor(pingValue)
+        end)
+        
+        if success and ping then
+            PingTag:SetTitle("Ping: " .. ping .. "ms")
+            
+            if ping <= 50 then
+                PingTag:SetColor(Color3.fromRGB(0, 255, 0)) -- Green
+            elseif ping <= 100 then
+                PingTag:SetColor(Color3.fromRGB(255, 200, 0)) -- Yellow
+            elseif ping <= 200 then
+                PingTag:SetColor(Color3.fromRGB(255, 150, 0)) -- Orange
+            else
+                PingTag:SetColor(Color3.fromRGB(255, 0, 0)) -- Red
+            end
+        end
+        
+        task.wait(2)
+    end
+end)
+        
+local MTab = Window:Tab({
+    Title = "Main",
+    Icon = "bird", -- lucide icon or "rbxassetid://" or URL. optional
+    IconColor = Color3.fromRGB(255, 100, 100), -- custom icon color. optional
+    IconShape = "Square", -- "Square" or "Circle". optional
+    IconThemed = true, -- use theme colors. optional
+    Locked = false, -- disable tab interaction. optional
+    ShowTabTitle = false, -- show title inside tab. optional
+    Border = true, -- add border around tab. optional
+})
+
+ local Section = MTab:Section({
+    Title = "Main"
+})
+ 
+local Slider = MTab:Slider({
+    Title = "WalkSpeed",
+    Value = {
+        Min = 16,
+        Max = 200,
+        Default = 16
+    },
+    Callback = function(value)
+        local character = game.Players.LocalPlayer.Character
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+        if humanoid then
+            humanoid.WalkSpeed = value
+        end
+    end
+})
+
+local Slider = MTab:Slider({
+    Title = "JumpPower",
+    Value = {
+        Min = 50,
+        Max = 200,
+        Default = 50
+    },
+    Callback = function(value)
+        local character = game.Players.LocalPlayer.Character
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+        if humanoid then
+            humanoid.UseJumpPower = true
+            humanoid.JumpPower = value
+        end
+    end
+})
+
+    local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+local player = Players.LocalPlayer
+local noclipConnection
+
+local Toggle = MTab:Toggle({
+    Title = "Noclip",
+    Default = false,
+
+    Callback = function(state)
+        if noclipConnection then
+            noclipConnection:Disconnect()
+            noclipConnection = nil
+        end
+
+        if state then
+            noclipConnection = RunService.Stepped:Connect(function()
+                local character = player.Character
+                if not character then return end
+
+                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+
+                for _, part in ipairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        -- Não deixa o HumanoidRootPart atravessar o chão
+                        if part == humanoidRootPart then
+                            part.CanCollide = true
+                        else
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        end
+    end
+})
+
+local UserInputService = game:GetService("UserInputService")
+
+local infiniteJump = false
+
+local Toggle = MTab:Toggle({
+    Title = "Infinite Jump",
+    Default = false,
+
+    Callback = function(state)
+        infiniteJump = state
+    end
+})
+
+UserInputService.JumpRequest:Connect(function()
+    if infiniteJump then
+        local character = player.Character
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+        if humanoid then
+            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
+
+local VTab = Window:Tab({
+    Title = "Visual",
+    Icon = "bird", -- lucide icon or "rbxassetid://" or URL. optional
+    IconColor = Color3.fromRGB(255, 100, 100), -- custom icon color. optional
+    IconShape = "Square", -- "Square" or "Circle". optional
+    IconThemed = true, -- use theme colors. optional
+    Locked = false, -- disable tab interaction. optional
+    ShowTabTitle = false, -- show title inside tab. optional
+    Border = true, -- add border around tab. optional
+})
+
+local Section = VTab:Section({
+    Title = "Lighting"
+})
+
+        local Lighting = game:GetService("Lighting")
+
+local oldBrightness = Lighting.Brightness
+local oldClockTime = Lighting.ClockTime
+local oldFogEnd = Lighting.FogEnd
+local oldGlobalShadows = Lighting.GlobalShadows
+
+local Toggle = VTab:Toggle({
+    Title = "FullBright",
+    Default = false,
+
+    Callback = function(state)
+        if state then
+            Lighting.Brightness = 2
+            Lighting.ClockTime = 14
+            Lighting.FogEnd = 100000
+            Lighting.GlobalShadows = false
+        else
+            Lighting.Brightness = oldBrightness
+            Lighting.ClockTime = oldClockTime
+            Lighting.FogEnd = oldFogEnd
+            Lighting.GlobalShadows = oldGlobalShadows
+        end
+    end
+})
+
+        local Toggle = VTab:Toggle({
+    Title = "No Fog",
+    Default = false,
+
+    Callback = function(state)
+        if state then
+            game.Lighting.FogEnd = 100000
+            game.Lighting.FogStart = 0
+        else
+            game.Lighting.FogEnd = 1000
+            game.Lighting.FogStart = 0
+        end
+    end
+})
+
+        local connection
+
+local Button = VTab:Button({
+    Title = "Remove all Effects",
+    Callback = function()
+        -- Remove os objetos que já existem
+        for _, obj in ipairs(game.Lighting:GetChildren()) do
+            obj:Destroy()
+        end
+
+        -- Remove automaticamente qualquer objeto novo
+        if connection then
+            connection:Disconnect()
+        end
+
+        connection = game.Lighting.ChildAdded:Connect(function(obj)
+            obj:Destroy()
+        end)
+    end
+})
+
+local Section = VTab:Section({
+    Title = "ESP"
+})
+
+    local highlightConnection
+local highlights = {}
+
+local function adicionarHighlight(model)
+    if not model:IsA("Model") then return end
+
+    local humanoid = model:FindFirstChildWhichIsA("Humanoid", true)
+    if not humanoid then return end
+
+    if model:FindFirstChild("HumanoidHighlight") then return end
+
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "HumanoidHighlight"
+    highlight.FillColor = Color3.fromRGB(255, 0, 0)
+    highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = model
+
+    table.insert(highlights, highlight)
+end
+
+local function limparHighlights()
+    for _, highlight in ipairs(highlights) do
+        if highlight and highlight.Parent then
+            highlight:Destroy()
+        end
+    end
+
+    table.clear(highlights)
+end
+
+local Toggle = VTab:Toggle({
+    Title = "Killer ESP",
+    Default = false,
+
+    Callback = function(state)
+        if highlightConnection then
+            highlightConnection:Disconnect()
+            highlightConnection = nil
+        end
+
+        limparHighlights()
+
+        if not state then
+            return
+        end
+
+        local floor = workspace:FindFirstChild("Floor")
+        if not floor then return end
+
+        -- Modelos que já existem
+        for _, obj in ipairs(floor:GetChildren()) do
+            adicionarHighlight(obj)
+        end
+
+        -- Modelos que aparecerem depois
+        highlightConnection = floor.ChildAdded:Connect(function(obj)
+            task.wait()
+            adicionarHighlight(obj)
+        end)
+    end
+ })
+local LeverHighlinghConnection
+local LeverHighlinghTable = {}
+
+local function adicionarHighlight(obj)
+    if not obj:IsA("Model") or obj.Name ~= "Lever" then
+        return
+    end
+
+    if obj:FindFirstChild("LeverHighlingh") then
+        return
+    end
+
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "LeverHighlingh"
+    highlight.FillColor = Color3.fromRGB(0, 255, 0)
+    highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = obj
+
+    table.insert(LeverHighlinghTable, highlight)
+end
+
+local function limparHighlights()
+    for _, highlight in ipairs(LeverHighlinghTable) do
+        if highlight and highlight.Parent then
+            highlight:Destroy()
+        end
+    end
+
+    table.clear(LeverHighlinghTable)
+end
+
+local Toggle = VTab:Toggle({
+    Title = "Lever ESP",
+    Default = false,
+
+    Callback = function(state)
+        if LeverHighlinghConnection then
+            LeverHighlinghConnection:Disconnect()
+            LeverHighlinghConnection = nil
+        end
+
+        limparHighlights()
+
+        if not state then
+            return
+        end
+
+        local floor = workspace:FindFirstChild("Floor")
+        if not floor then
+            return
+        end
+
+        for _, obj in ipairs(floor:GetDescendants()) do
+            adicionarHighlight(obj)
+        end
+
+        LeverHighlinghConnection = floor.DescendantAdded:Connect(function(obj)
+            task.wait()
+            adicionarHighlight(obj)
+        end)
+    end
+})
+
+     local RTab = Window:Tab({
+    Title = "Misc",
+    Icon = "bird", -- lucide icon or "rbxassetid://" or URL. optional
+    IconColor = Color3.fromRGB(255, 100, 100), -- custom icon color. optional
+    IconShape = "Square", -- "Square" or "Circle". optional
+    IconThemed = true, -- use theme colors. optional
+    Locked = false, -- disable tab interaction. optional
+    ShowTabTitle = false, -- show title inside tab. optional
+    Border = true, -- add border around tab. optional
+})
+
+    local Section = RTab:Section({
+    Title = "Misc"
+})
+
+    local HumanoidKillConnection
+local HumanoidKillEnabled = false
+
+local function matarHumanoid(obj)
+    if not HumanoidKillEnabled then
+        return
+    end
+
+    if not obj:IsA("Model") then
+        return
+    end
+
+    local humanoid = obj:FindFirstChildWhichIsA("Humanoid", true)
+
+    if humanoid then
+        humanoid.Health = 0
+    end
+end
+
+local Toggle = RTab:Toggle({
+    Title = "Kill Killers",
+    Default = false,
+
+    Callback = function(state)
+        HumanoidKillEnabled = state
+
+        if HumanoidKillConnection then
+            HumanoidKillConnection:Disconnect()
+            HumanoidKillConnection = nil
+        end
+
+        if not state then
+            return
+        end
+
+        local Floor = workspace:FindFirstChild("Floor")
+        if not Floor then
+            return
+        end
+
+        -- Mata os que já existem
+        for _, obj in ipairs(Floor:GetChildren()) do
+            matarHumanoid(obj)
+        end
+
+        -- Mata automaticamente os que aparecerem depois
+        HumanoidKillConnection = Floor.ChildAdded:Connect(function(obj)
+            task.wait()
+            matarHumanoid(obj)
+        end)
+    end
+})
+
+        local Button = RTab:Button({
+    Title = "Unlock Vip And More",
+    Desc = "⚠️ Note: Not Use Morphs and you will be kicked!!",
+    Callback = function()
+        local nomes = {
+            "megavip",
+            "overlord",
+            "vip", "
+            "group",
+            "barrierelevator",
+            "forcefield"
+        }
+
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            local nome = string.lower(obj.Name)
+
+            for _, palavra in ipairs(nomes) do
+                if string.find(nome, palavra, 1, true) then
+                    obj:Destroy()
+                    break
+                end
+            end
+        end
+    end
+})
+
+local player = Players.LocalPlayer
+
+local TeleportAfterDeath = false
+local CharacterConnection
+
+local function monitorarCharacter(character)
+    if CharacterConnection then
+        CharacterConnection:Disconnect()
+        CharacterConnection = nil
+    end
+
+    local humanoid = character:WaitForChild("Humanoid")
+
+    CharacterConnection = humanoid.Died:Connect(function()
+        if not TeleportAfterDeath then
+            return
+        end
+
+        local newCharacter = player.CharacterAdded:Wait()
+        local root = newCharacter:WaitForChild("HumanoidRootPart")
+
+        task.wait(0.2)
+        root.CFrame = CFrame.new(253, 8, -373)
+    end)
+end
+
+local Toggle = RTab:Toggle({
+    Title = "Auto Enter Elevator",
+    Default = false,
+
+    Callback = function(state)
+        TeleportAfterDeath = state
+
+        if state and player.Character then
+            monitorarCharacter(player.Character)
+        end
+    end
+})
+
+player.CharacterAdded:Connect(function(character)
+    if TeleportAfterDeath then
+        monitorarCharacter(character)
+    end
+end)
+
+    local ATab = Window:Tab({
+    Title = "Auto Farm",
+    Icon = "bird", -- lucide icon or "rbxassetid://" or URL. optional
+    IconColor = Color3.fromRGB(255, 100, 100), -- custom icon color. optional
+    IconShape = "Square", -- "Square" or "Circle". optional
+    IconThemed = true, -- use theme colors. optional
+    Locked = false, -- disable tab interaction. optional
+    ShowTabTitle = false, -- show title inside tab. optional
+    Border = true, -- add border around tab. optional
+})
+
+        local Section = ATab:Section({
+    Title = "Auto Farm"
+})
+ 
+local TeleportCoinsSouls = false
+local TeleportLoop
+
+local Toggle = ATab:Toggle({
+    Title = "Auto Collect Coin & Soul",
+    Default = false,
+
+    Callback = function(state)
+        TeleportCoinsSouls = state
+
+        if TeleportLoop then
+            task.cancel(TeleportLoop)
+            TeleportLoop = nil
+        end
+
+        if not state then
+            return
+        end
+
+        TeleportLoop = task.spawn(function()
+            while TeleportCoinsSouls do
+                local character = player.Character
+                local root = character and character:FindFirstChild("HumanoidRootPart")
+                local floor = workspace:FindFirstChild("Floor")
+
+                if root and floor then
+                    for _, obj in ipairs(floor:GetDescendants()) do
+                        if obj:IsA("BasePart") then
+                            local name = string.lower(obj.Name)
+
+                            if name == "coin" or name == "soul" then
+                                obj.CFrame = root.CFrame
+                            end
+                        end
+                    end
+                end
+
+                task.wait(1)
+            end
+        end)
+    end
+})
+
+        local BloodCoinEnabled = false
+local BloodCoinLoop
+local BloodCoinHealthConnection
+local BloodCoinPaused = false
+
+local Toggle = ATab:Toggle({
+    Title = " Auto Collect BloodCoin",
+    Desc = "Pause when you have 25 HP.",
+    Default = false,
+
+    Callback = function(state)
+        BloodCoinEnabled = state
+
+        if BloodCoinLoop then
+            task.cancel(BloodCoinLoop)
+            BloodCoinLoop = nil
+        end
+
+        if BloodCoinHealthConnection then
+            BloodCoinHealthConnection:Disconnect()
+            BloodCoinHealthConnection = nil
+        end
+
+        if not state then
+            return
+        end
+
+        local function verificarVida()
+            local character = player.Character
+            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+            if not humanoid then return end
+
+            if humanoid.Health <= 25 then
+                BloodCoinPaused = true
+            elseif humanoid.Health >= 50 then
+                BloodCoinPaused = false
+            end
+        end
+
+        local function monitorarCharacter(character)
+            local humanoid = character:WaitForChild("Humanoid")
+            BloodCoinPaused = false
+
+            BloodCoinHealthConnection = humanoid.HealthChanged:Connect(function(health)
+                if health <= 25 then
+                    BloodCoinPaused = true
+                elseif health >= 50 then
+                    BloodCoinPaused = false
+                end
+            end)
+        end
+
+        if player.Character then
+            monitorarCharacter(player.Character)
+        end
+
+        BloodCoinLoop = task.spawn(function()
+            while BloodCoinEnabled do
+                if not BloodCoinPaused then
+                    local character = player.Character
+                    local root = character and character:FindFirstChild("HumanoidRootPart")
+                    local floor = workspace:FindFirstChild("Floor")
+
+                    if root and floor then
+                        for _, obj in ipairs(floor:GetDescendants()) do
+                            if obj:IsA("BasePart") then
+                                local name = string.lower(obj.Name)
+
+                                if name == "bloodcoin" then
+                                    obj.CFrame = root.CFrame
+                                end
+                            end
+                        end
+                    end
+                end
+
+                task.wait(1)
+            end
+        end)
+    end
+})
+
+player.CharacterAdded:Connect(function(character)
+    if not BloodCoinEnabled then return end
+
+    task.wait(0.2)
+
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        BloodCoinPaused = false
+
+        if BloodCoinHealthConnection then
+            BloodCoinHealthConnection:Disconnect()
+        end
+
+        BloodCoinHealthConnection = humanoid.HealthChanged:Connect(function(health)
+            if health <= 25 then
+                BloodCoinPaused = true
+            elseif health >= 50 then
+                BloodCoinPaused = false
+            end
+        end)
+    end
+end)
+
+        local BadgeTeleportEnabled = false
+local BadgeTeleportLoop
+
+local Toggle = ATab:Toggle({
+    Title = "Auto Get Badge",
+    Default = false,
+
+    Callback = function(state)
+        BadgeTeleportEnabled = state
+
+        if BadgeTeleportLoop then
+            task.cancel(BadgeTeleportLoop)
+            BadgeTeleportLoop = nil
+        end
+
+        if not state then
+            return
+        end
+
+        BadgeTeleportLoop = task.spawn(function()
+            while BadgeTeleportEnabled do
+                local character = player.Character
+                local root = character and character:FindFirstChild("HumanoidRootPart")
+                local floor = workspace:FindFirstChild("Floor")
+
+                if root and floor then
+                    for _, obj in ipairs(floor:GetDescendants()) do
+                        if obj:IsA("BasePart") and string.lower(obj.Name) == "badge" then
+                            obj.CFrame = root.CFrame
+                        end
+                    end
+                end
+
+                task.wait(1)
+            end
+        end)
+    end
+})
+
+        local TeleportPart
+local TeleportEnabled = false
+
+local Toggle = ATab:Toggle({
+    Title = "Auto Survive",
+    Default = false,
+
+    Callback = function(state)
+        TeleportEnabled = state
+
+        local character = player.Character
+        local root = character and character:FindFirstChild("HumanoidRootPart")
+
+        if state then
+            TeleportPart = Instance.new("Part")
+            TeleportPart.Name = "TeleportPoint"
+            TeleportPart.Size = Vector3.new(50, 1, 50)
+            TeleportPart.Position = Vector3.new(101, 176, 1238)
+            TeleportPart.Anchored = true
+            TeleportPart.CanCollide = true
+            TeleportPart.Transparency = 0.5
+            TeleportPart.Parent = workspace
+
+            if root then
+                root.CFrame = CFrame.new(101, 179, 1238)
+            end
+
+        else
+            local spawns = {}
+
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if obj:IsA("SpawnLocation") then
+                    table.insert(spawns, obj)
+                end
+            end
+
+            if root and #spawns > 0 then
+                local spawn = spawns[math.random(1, #spawns)]
+                root.CFrame = spawn.CFrame + Vector3.new(0, 3, 0)
+            end
+
+            if TeleportPart then
+                TeleportPart:Destroy()
+                TeleportPart = nil
+            end
+        end
+    end
+})
+
+        local AutoLeverEnabled = false
+local AutoLeverLoop
+
+local Toggle = Tab:Toggle({
+    Title = "Auto Lever",
+    Desc = "BETA",
+    Default = false,
+
+    Callback = function(state)
+        AutoLeverEnabled = state
+
+        if AutoLeverLoop then
+            task.cancel(AutoLeverLoop)
+            AutoLeverLoop = nil
+        end
+
+        if not state then
+            return
+        end
+
+        AutoLeverLoop = task.spawn(function()
+            while AutoLeverEnabled do
+                local floor = workspace:FindFirstChild("Floor")
+
+                if floor then
+                    for _, lever in ipairs(floor:GetDescendants()) do
+                        if lever:IsA("Model") and lever.Name == "Lever" then
+                            local leverPart = lever:FindFirstChild("Lever 1", true)
+
+                            if leverPart then
+                                local clickDetector = leverPart:FindFirstChildWhichIsA("ClickDetector", true)
+
+                                if clickDetector then
+                                    fireclickdetector(clickDetector)
+                                end
+                            end
+                        end
+                    end
+                end
+
+                task.wait(0.5)
+            end
+        end)
+    end
+})
+
+    local ETab = Window:Tab({
+    Title = "Setting",
+    Icon = "bird", -- lucide icon or "rbxassetid://" or URL. optional
+    IconColor = Color3.fromRGB(255, 100, 100), -- custom icon color. optional
+    IconShape = "Square", -- "Square" or "Circle". optional
+    IconThemed = true, -- use theme colors. optional
+    Locked = false, -- disable tab interaction. optional
+    ShowTabTitle = false, -- show title inside tab. optional
+    Border = true, -- add border around tab. optiona
+})
+
+local Section = ETab:Section({
+    Title = "Settings"
+})
+
+
+
+local Theme = ETab:Dropdown({
+    Title = "Theme",
+    Flag = "selected_theme", 
+    Options = { "Light", "Dark", "Indigo" },
+    Default = "Indigo",
+    Callback = function(selected)
+     Window:SetTheme(Theme: = (selected))
+    end
+})
+
