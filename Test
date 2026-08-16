@@ -518,6 +518,7 @@ local Toggle = RTab:Toggle({
             "overlord",
             "vip",
             "group",
+            "basementdoor",
             "barrierelevator",
             "forcefield"
         }
