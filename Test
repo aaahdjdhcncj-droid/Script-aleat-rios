@@ -847,7 +847,7 @@ local Toggle = ATab:Toggle({
                     root.CFrame = CFrame.new(101, 179, 1238)
                 end
 
-                task.wait(0.1)
+                task.wait(3)
             end
         end)
     end
