@@ -454,58 +454,27 @@ local Toggle = VTab:Toggle({
     Title = "Misc"
 })
 
-    local KillKillerConnection
-local KillKillerEnabled = false
-
-local function matarModel(model)
-    if not model:IsA("Model") then
-        return
-    end
-
-    -- Só aceita Humanoid diretamente dentro deste Model
-    local humanoid = model:FindFirstChildOfClass("Humanoid")
-
-    if humanoid and humanoid.Health > 0 then
-        humanoid.Health = 0
-    end
-end
-
-local Toggle = RTab:Toggle({
-    Title = "Kill Killers",
-    Default = false,
-
-    Callback = function(state)
-        KillKillerEnabled = state
-
-        if KillKillerConnection then
-            KillKillerConnection:Disconnect()
-            KillKillerConnection = nil
-        end
-
-        if not state then
-            return
-        end
-
+local Button = RTab:Button({
+    Title = "Kill All Killers",
+    Desc = "Mata todos os Killers",
+    
+    Callback = function()
         local Floor = workspace:FindFirstChild("Floor")
+        
         if not Floor then
             return
         end
 
-        -- Procura somente Models que tenham Humanoid diretamente dentro deles
         for _, obj in ipairs(Floor:GetDescendants()) do
             if obj:IsA("Model") then
-                matarModel(obj)
+                -- Humanoid precisa estar diretamente dentro do Model
+                local humanoid = obj:FindFirstChildOfClass("Humanoid")
+
+                if humanoid and humanoid.Health > 0 then
+                    humanoid.Health = 0
+                end
             end
         end
-
-        -- Detecta novos Models automaticamente
-        KillKillerConnection = Floor.DescendantAdded:Connect(function(obj)
-            if KillKillerEnabled and obj:IsA("Model") then
-                task.defer(function()
-                    matarModel(obj)
-                end)
-            end
-        end)
     end
 })
 
