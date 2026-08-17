@@ -904,9 +904,7 @@ local padsPorCategoria = {
     Souls = {}
 }
 
--- Posição original dos Pads
-local posicoesOriginais = {}
-
+-- Procura Item ou Currency em qualquer nível dentro do Pad
 local function encontrarStringValue(pad, nome)
     for _, obj in ipairs(pad:GetDescendants()) do
         if obj:IsA("StringValue") and obj.Name:lower() == nome:lower() then
@@ -917,6 +915,7 @@ local function encontrarStringValue(pad, nome)
     return nil
 end
 
+-- Converte a Currency para uma categoria
 local function normalizarCurrency(valor)
     valor = tostring(valor):lower():gsub("%s+", "")
 
@@ -936,6 +935,7 @@ local function normalizarCurrency(valor)
     return nil
 end
 
+-- Obtém a posição do Pad
 local function obterCFrame(pad)
     if pad:IsA("Model") then
         return pad:GetPivot()
@@ -947,16 +947,25 @@ local function obterCFrame(pad)
     return nil
 end
 
+-- Move o Pad
+local function moverPad(pad, cframe)
+    if not pad or not pad.Parent then
+        return
+    end
 
--- Encontrar todos os Pads
+    if pad:IsA("Model") then
+        pad:PivotTo(cframe)
+
+    elseif pad:IsA("BasePart") then
+        pad.CFrame = cframe
+    end
+end
+
+
+-- Encontrar os Pads
 for _, pad in ipairs(Shop:GetDescendants()) do
 
     if PadNames[pad.Name] then
-
-        -- Salva a posição original
-        if not posicoesOriginais[pad] then
-            posicoesOriginais[pad] = obterCFrame(pad)
-        end
 
         local item = encontrarStringValue(pad, "Item")
         local currency = encontrarStringValue(pad, "Currency")
@@ -975,11 +984,11 @@ for _, pad in ipairs(Shop:GetDescendants()) do
                 })
 
                 print(
-                    "[SHOP] Encontrado:",
+                    "[SHOP]",
                     pad:GetFullName(),
-                    "| Item:",
+                    "Item:",
                     item.Value,
-                    "| Currency:",
+                    "Currency:",
                     currency.Value
                 )
             end
@@ -988,16 +997,19 @@ for _, pad in ipairs(Shop:GetDescendants()) do
 end
 
 
--- Remove duplicados
+-- Remove valores duplicados
 local function removerDuplicados(lista)
+
     local resultado = {}
     local usados = {}
 
     for _, valor in ipairs(lista) do
+
         if not usados[valor] then
             usados[valor] = true
             table.insert(resultado, valor)
         end
+
     end
 
     return resultado
@@ -1009,8 +1021,8 @@ categorias.Level = removerDuplicados(categorias.Level)
 categorias.Souls = removerDuplicados(categorias.Souls)
 
 
--- Teleportar / devolver Pad
-local function teleportarPad(pad)
+-- Teleporta o Pad e depois devolve para a origem
+local function teleportarEDevolverPad(pad)
 
     local character = LocalPlayer.Character
 
@@ -1024,90 +1036,31 @@ local function teleportarPad(pad)
         return
     end
 
+    -- SALVA A POSIÇÃO EXATA ANTES DE MOVER
+    local origem = obterCFrame(pad)
 
-    -- Se o Pad está no jogador, devolve para a posição original
-    if posicoesOriginais[pad] then
-
-        if pad:IsA("Model") then
-            pad:PivotTo(hrp.CFrame)
-
-        elseif pad:IsA("BasePart") then
-            pad.CFrame = hrp.CFrame
-        end
-
-        -- Guarda a posição para devolver depois
-        local origem = obterCFrame(pad)
-
-        -- Como o Pad foi movido, recuperamos a origem salva
-        -- através da tabela separada abaixo
-    end
-end
-
-
--- Guardar posições originais separadamente
-local origemPads = {}
-
-for pad, cframe in pairs(posicoesOriginais) do
-    origemPads[pad] = cframe
-end
-
-
-local padsTeleportados = {}
-
-
-local function moverPad(pad)
-
-    local character = LocalPlayer.Character
-
-    if not character then
+    if not origem then
         return
     end
 
-    local hrp = character:FindFirstChild("HumanoidRootPart")
+    -- Leva o Pad para o jogador
+    moverPad(pad, hrp.CFrame)
 
-    if not hrp then
-        return
-    end
+    print("[SHOP] Pad teleportado:", pad:GetFullName())
 
+    -- Espera um pouco
+    task.wait(0.5)
 
-    -- Se já foi teleportado, devolver para origem
-    if padsTeleportados[pad] then
+    -- DEVOLVE EXATAMENTE PARA ONDE ESTAVA
+    if pad and pad.Parent then
+        moverPad(pad, origem)
 
-        local origem = origemPads[pad]
-
-        if origem then
-
-            if pad:IsA("Model") then
-                pad:PivotTo(origem)
-
-            elseif pad:IsA("BasePart") then
-                pad.CFrame = origem
-            end
-
-        end
-
-        padsTeleportados[pad] = nil
-
-        print("[SHOP] Pad devolvido:", pad:GetFullName())
-
-    else
-
-        -- Teleportar para o jogador
-        if pad:IsA("Model") then
-            pad:PivotTo(hrp.CFrame)
-
-        elseif pad:IsA("BasePart") then
-            pad.CFrame = hrp.CFrame
-        end
-
-        padsTeleportados[pad] = true
-
-        print("[SHOP] Pad teleportado:", pad:GetFullName())
+        print("[SHOP] Pad devolvido para a origem:", pad:GetFullName())
     end
 end
 
 
--- Criar Dropdown
+-- Cria Dropdown
 local function criarDropdown(title, categoria)
 
     return HTab:Dropdown({
@@ -1121,11 +1074,14 @@ local function criarDropdown(title, categoria)
 
                 if dados.Item == selected then
 
-                    moverPad(dados.Pad)
+                    task.spawn(function()
+                        teleportarEDevolverPad(dados.Pad)
+                    end)
 
                     break
                 end
             end
+
         end
     })
 end
@@ -1168,7 +1124,7 @@ local LevelSection = HTab:Section({
 })
 
 local LevelDropdown = criarDropdown(
-    "Select Item",
+    "Select Level Item",
     "Level"
 )
 
@@ -1185,6 +1141,7 @@ local SoulsDropdown = criarDropdown(
     "Select Item",
     "Souls"
 )
+
 
     local ETab = Window:Tab({
     Title = "Setting",
