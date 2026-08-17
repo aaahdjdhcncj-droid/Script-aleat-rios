@@ -879,116 +879,220 @@ local HTab = Window:Tab({
     Border = true, -- add border around tab. optional
 })
 
-local Section = HTab:Section({
-    Title = "Shop"
-})
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
 local Shop = workspace:WaitForChild("Shop")
 
-local function pegarPadsPorCurrency(currencyName)
-    local pads = {}
+local PadNames = {
+    ShopPad = true,
+    DualShopPad = true,
+    LevelShopPad = true
+}
 
-    for _, obj in ipairs(Shop:GetDescendants()) do
-        if obj.Name == "ShopPad" then
-            local item = obj:FindFirstChild("Item")
-            local currency = obj:FindFirstChild("Currency")
-
-            if item and item:IsA("StringValue")
-            and currency and currency:IsA("StringValue")
-            and currency.Value == currencyName then
-
-                if item.Value ~= "" then
-                    table.insert(pads, {
-                        Name = item.Value,
-                        Pad = obj
-                    })
-                end
-            end
+-- Procura um StringValue pelo nome em qualquer lugar dentro do Pad
+local function encontrarStringValue(pad, nome)
+    for _, obj in ipairs(pad:GetDescendants()) do
+        if obj:IsA("StringValue") and obj.Name:lower() == nome:lower() then
+            return obj
         end
     end
 
-    return pads
+    return nil
 end
 
-local function criarDropdown(title, currencyName)
-    local pads = pegarPadsPorCurrency(currencyName)
+-- Normaliza a categoria
+local function normalizarCurrency(valor)
+    valor = tostring(valor):lower():gsub("%s+", "")
 
-    local values = {}
-
-    for _, data in ipairs(pads) do
-        table.insert(values, data.Name)
+    if valor == "survival" or valor == "survivals" then
+        return "Survivals"
+    elseif valor == "point" or valor == "points" then
+        return "Points"
+    elseif valor == "level" or valor == "levels" then
+        return "Level"
+    elseif valor == "soul" or valor == "souls" then
+        return "Souls"
     end
 
-    return HTab:Dropdown({
+    return nil
+end
+
+local categorias = {
+    Survivals = {},
+    Points = {},
+    Level = {},
+    Souls = {}
+}
+
+-- Guarda também qual é o Pad de cada Item
+local padsPorCategoria = {
+    Survivals = {},
+    Points = {},
+    Level = {},
+    Souls = {}
+}
+
+for _, pad in ipairs(Shop:GetDescendants()) do
+
+    if PadNames[pad.Name] then
+
+        local item = encontrarStringValue(pad, "Item")
+        local currency = encontrarStringValue(pad, "Currency")
+
+        if item and currency then
+
+            local categoria = normalizarCurrency(currency.Value)
+
+            if categoria and item.Value ~= "" then
+
+                table.insert(categorias[categoria], item.Value)
+
+                table.insert(padsPorCategoria[categoria], {
+                    Item = item.Value,
+                    Pad = pad
+                })
+
+                print(
+                    "[SHOP] Encontrado:",
+                    pad:GetFullName(),
+                    "| Item:",
+                    item.Value,
+                    "| Currency:",
+                    currency.Value
+                )
+            end
+        end
+    end
+end
+
+
+-- Remove itens duplicados
+local function removerDuplicados(lista)
+    local resultado = {}
+    local usados = {}
+
+    for _, valor in ipairs(lista) do
+        if not usados[valor] then
+            usados[valor] = true
+            table.insert(resultado, valor)
+        end
+    end
+
+    return resultado
+end
+
+
+categorias.Survivals = removerDuplicados(categorias.Survivals)
+categorias.Points = removerDuplicados(categorias.Points)
+categorias.Level = removerDuplicados(categorias.Level)
+categorias.Souls = removerDuplicados(categorias.Souls)
+
+
+-- Teleporta o Pad para o jogador
+local function teleportarPad(pad)
+    local character = LocalPlayer.Character
+
+    if not character then
+        return
+    end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+
+    if not hrp then
+        return
+    end
+
+    if pad:IsA("Model") then
+        pad:PivotTo(hrp.CFrame)
+
+    elseif pad:IsA("BasePart") then
+        pad.CFrame = hrp.CFrame
+    end
+
+    print("[SHOP] Pad teleportado:", pad:GetFullName())
+end
+
+
+-- Cria Dropdown
+local function criarDropdown(title, categoria)
+
+    local valores = categorias[categoria]
+
+    local dropdown = HTab:Dropdown({
         Title = title,
-        Values = values,
+        Values = valores,
 
         Callback = function(selected)
-            for _, data in ipairs(pads) do
-                if data.Name == selected then
 
-                    local pad = data.Pad
-                    local character = game.Players.LocalPlayer.Character
+            for _, dados in ipairs(padsPorCategoria[categoria]) do
 
-                    if character and character:FindFirstChild("HumanoidRootPart") then
-                        local hrp = character.HumanoidRootPart
-
-                        if pad:IsA("Model") then
-                            pad:PivotTo(hrp.CFrame)
-                        elseif pad:IsA("BasePart") then
-                            pad.CFrame = hrp.CFrame
-                        end
-                    end
-
-                    print("Pad teleportado:", selected)
+                if dados.Item == selected then
+                    teleportarPad(dados.Pad)
                     break
                 end
+
             end
+
         end
     })
+
+    return dropdown
 end
 
 
--- Survivals
+-- =========================
+-- SURVIVALS
+-- =========================
+
 local SurvivalsSection = HTab:Section({
     Title = "Survivals"
 })
 
 local SurvivalsDropdown = criarDropdown(
-    "Select Survival",
+    "Select Item",
     "Survivals"
 )
 
 
--- Points
+-- =========================
+-- POINTS
+-- =========================
+
 local PointsSection = HTab:Section({
     Title = "Points"
 })
 
 local PointsDropdown = criarDropdown(
-    "Select Points Item",
+    "Select Item",
     "Points"
 )
 
 
--- Level
+-- =========================
+-- LEVEL
+-- =========================
+
 local LevelSection = HTab:Section({
     Title = "Level"
 })
 
 local LevelDropdown = criarDropdown(
-    "Select Level Item",
-    "Levels"
+    "Select Item",
+    "Level"
 )
 
 
--- Souls
+-- =========================
+-- SOULS
+-- =========================
+
 local SoulsSection = HTab:Section({
     Title = "Souls"
 })
 
 local SoulsDropdown = criarDropdown(
-    "Select Soul",
+    "Select Item",
     "Souls"
 )
     local ETab = Window:Tab({
