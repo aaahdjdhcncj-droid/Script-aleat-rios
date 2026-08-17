@@ -868,6 +868,129 @@ local Toggle = ATab:Toggle({
     end
 })
 
+local HTab = Window:Tab({
+    Title = "Shop",
+    Icon = "bird", -- lucide icon or "rbxassetid://" or URL. optional
+    IconColor = Color3.fromRGB(255, 100, 100), -- custom icon color. optional
+    IconShape = "Square", -- "Square" or "Circle". optional
+    IconThemed = true, -- use theme colors. optional
+    Locked = false, -- disable tab interaction. optional
+    ShowTabTitle = false, -- show title inside tab. optional
+    Border = true, -- add border around tab. optional
+})
+
+local Section = HTab:Section({
+    Title = "Shop"
+})
+
+local Shop = workspace:WaitForChild("Shop")
+
+local function pegarPadsPorCurrency(currencyName)
+    local pads = {}
+
+    for _, obj in ipairs(Shop:GetDescendants()) do
+        if obj.Name == "ShopPad" then
+            local item = obj:FindFirstChild("Item")
+            local currency = obj:FindFirstChild("Currency")
+
+            if item and item:IsA("StringValue")
+            and currency and currency:IsA("StringValue")
+            and currency.Value == currencyName then
+
+                if item.Value ~= "" then
+                    table.insert(pads, {
+                        Name = item.Value,
+                        Pad = obj
+                    })
+                end
+            end
+        end
+    end
+
+    return pads
+end
+
+local function criarDropdown(title, currencyName)
+    local pads = pegarPadsPorCurrency(currencyName)
+
+    local values = {}
+
+    for _, data in ipairs(pads) do
+        table.insert(values, data.Name)
+    end
+
+    return HTab:Dropdown({
+        Title = title,
+        Values = values,
+
+        Callback = function(selected)
+            for _, data in ipairs(pads) do
+                if data.Name == selected then
+
+                    local pad = data.Pad
+                    local character = game.Players.LocalPlayer.Character
+
+                    if character and character:FindFirstChild("HumanoidRootPart") then
+                        local hrp = character.HumanoidRootPart
+
+                        if pad:IsA("Model") then
+                            pad:PivotTo(hrp.CFrame)
+                        elseif pad:IsA("BasePart") then
+                            pad.CFrame = hrp.CFrame
+                        end
+                    end
+
+                    print("Pad teleportado:", selected)
+                    break
+                end
+            end
+        end
+    })
+end
+
+
+-- Survivals
+local SurvivalsSection = HTab:Section({
+    Title = "Survivals"
+})
+
+local SurvivalsDropdown = criarDropdown(
+    "Select Survival",
+    "Survivals"
+)
+
+
+-- Points
+local PointsSection = HTab:Section({
+    Title = "Points"
+})
+
+local PointsDropdown = criarDropdown(
+    "Select Points Item",
+    "Points"
+)
+
+
+-- Level
+local LevelSection = HTab:Section({
+    Title = "Level"
+})
+
+local LevelDropdown = criarDropdown(
+    "Select Level Item",
+    "Levels"
+)
+
+
+-- Souls
+local SoulsSection = HTab:Section({
+    Title = "Souls"
+})
+
+local SoulsDropdown = criarDropdown(
+    "Select Soul",
+    "Souls"
+)
     local ETab = Window:Tab({
     Title = "Setting",
     Icon = "bird", -- lucide icon or "rbxassetid://" or URL. optional
